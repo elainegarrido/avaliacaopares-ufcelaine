@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Avaliação por Pares entre Equipes</title>
+  <style>
+    :root{
+      --green-900:#0f5132;
+      --green-800:#166534;
+      --green-700:#1b7a46;
+      --green-100:#eaf7ef;
+      --green-050:#f6fcf8;
+      --border:#d7e8dc;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --danger:#b42318;
+      --warning:#9a6700;
+      --white:#ffffff;
+      --shadow:0 10px 24px rgba(15,81,50,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Arial, Helvetica, sans-serif;
+      color:var(--text);
+      background:linear-gradient(180deg, var(--green-050), #ffffff 30%);
+    }
+    header{
+      background:linear-gradient(120deg, var(--green-900), var(--green-700));
+      color:#fff;
+      padding:28px 20px;
+    }
+    .container{
+      max-width:1100px;
+      margin:0 auto;
+      padding:24px 16px 40px;
+    }
+    .hero{
+      display:grid;
+      gap:8px;
+    }
+    .hero h1{margin:0;font-size:clamp(1.5rem,2vw,2.2rem)}
+    .hero p{margin:0;opacity:.96;max-width:900px;line-height:1.45}
+    .grid{
+      display:grid;
+      gap:18px;
+    }
+    .card{
+      background:var(--white);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:22px;
+    }
+    .card h2,.card h3{margin-top:0;color:var(--green-900)}
+    .row{
+      display:grid;
+      gap:14px;
+      grid-template-columns:repeat(12,1fr);
+    }
+    .field{grid-column:span 12}
+    .col-6{grid-column:span 6}
+    .col-4{grid-column:span 4}
+    .col-3{grid-column:span 3}
+    @media (max-width: 760px){
+      .col-6,.col-4,.col-3{grid-column:span 12}
+    }
+    label{
+      display:block;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    input, select, textarea{
+      width:100%;
+      border:1px solid #cbd5e1;
+      border-radius:12px;
+      padding:12px 14px;
+      font-size:15px;
+      background:#fff;
+    }
+    textarea{min-height:96px; resize:vertical}
+    .help{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:6px;
+      line-height:1.35;
+    }
+    .note{
+      border-left:4px solid var(--green-700);
+      background:var(--green-100);
+      padding:14px 16px;
+      border-radius:12px;
+      line-height:1.5;
+    }
+    .warning{
+      border-left:4px solid #e0a800;
+      background:#fff7db;
+      padding:14px 16px;
+      border-radius:12px;
+      line-height:1.5;
+      color:#5f4b00;
+    }
+    .criterion{
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+      margin:12px 0;
+      background:#fcfffd;
+    }
+    .criterion-title{
+      font-weight:700;
+      margin-bottom:10px;
+    }
+    .scale{
+      display:grid;
+      grid-template-columns:repeat(5, minmax(70px,1fr));
+      gap:8px;
+    }
+    @media (max-width: 760px){
+      .scale{grid-template-columns:repeat(5,1fr)}
+    }
+    .scale label{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      font-weight:600;
+      margin:0;
+      border:1px solid #d1d5db;
+      border-radius:12px;
+      padding:10px 6px;
+      background:#fff;
+      text-align:center;
+      cursor:pointer;
+      min-height:76px;
+    }
+    .scale input{width:auto; margin:0}
+    .peer-card{
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:18px;
+      background:#fff;
+      margin-top:16px;
+    }
+    .badge{
+      display:inline-block;
+      background:var(--green-100);
+      color:var(--green-900);
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:700;
+      margin-bottom:10px;
+    }
+    .actions{
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-top:18px;
+    }
+    button{
+      border:none;
+      border-radius:14px;
+      padding:12px 18px;
+      font-size:15px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .primary{background:var(--green-800); color:#fff}
+    .secondary{background:#eef2f7; color:#1f2937}
+    .ghost{background:#fff; color:var(--green-800); border:1px solid var(--border)}
+    .status{
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:12px;
+      display:none;
+      line-height:1.45;
+    }
+    .status.ok{display:block; background:#ecfdf3; color:#116329; border:1px solid #b7e7c7}
+    .status.err{display:block; background:#fef3f2; color:var(--danger); border:1px solid #f2c3be}
+    .status.warn{display:block; background:#fff7db; color:var(--warning); border:1px solid #edd48a}
+    .tabs{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-bottom:18px;
+    }
+    .tab-btn.active{
+      background:var(--green-800);
+      color:#fff;
+    }
+    .hidden{display:none}
+    table{
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+      background:#fff;
+      border-radius:14px;
+      overflow:hidden;
+    }
+    th, td{
+      border:1px solid #e5e7eb;
+      padding:10px 12px;
+      text-align:left;
+      vertical-align:top;
+      font-size:14px;
+    }
+    th{
+      background:#f5faf7;
+      color:var(--green-900);
+    }
+    .small{font-size:12px;color:var(--muted)}
+    .footer{
+      margin-top:26px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+    .mono{font-family:Consolas, Monaco, monospace; font-size:13px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container hero">
+      <h1>Avaliação por Pares entre Equipes</h1>
+      <p>Formulário web para equipes de até 10 integrantes, com coleta de e-mail, avaliação individual por critérios e apuração da nota individual pela <strong>moda das notas finais atribuídas pelos pares</strong>.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="tabs">
+      <button class="tab-btn primary active" data-tab="avaliacao" type="button">Formulário de avaliação</button>
+      <button class="tab-btn ghost" data-tab="relatorio" type="button">Relatório / apuração</button>
+    </div>
+
+    <section id="tab-avaliacao" class="grid">
+      <div class="card">
+        <h2>Orientações</h2>
+        <div class="note">
+          Cada estudante deve preencher seus dados, informar a equipe e avaliar separadamente cada colega do grupo.
+          A nota de cada colega em uma avaliação é a <strong>média dos 4 critérios</strong>. Ao final, a <strong>nota individual do aluno</strong> é calculada pela <strong>moda</strong> dessas notas recebidas dos pares. Em caso de empate na moda, o sistema adota a <strong>maior moda</strong>.
+        </div>
+        <div class="warning" style="margin-top:12px;">
+          Este arquivo já funciona para coleta local no navegador e geração de relatório. Para coleta real de vários respondentes, publique a página e conecte um endpoint de armazenamento
+          (por exemplo: Google Apps Script + Google Sheets, Supabase ou Firebase). O campo de configuração está no código como <span class="mono">SCRIPT_ENDPOINT</span>.
+        </div>
+      </div>
+
+      <form id="peerForm" class="card">
+        <h2>Dados do avaliador</h2>
+        <div class="row">
+          <div class="field col-6">
+            <label for="evaluatorName">Nome completo do avaliador</label>
+            <input id="evaluatorName" name="evaluatorName" required />
+          </div>
+          <div class="field col-6">
+            <label for="evaluatorEmail">E-mail do avaliador</label>
+            <input id="evaluatorEmail" name="evaluatorEmail" type="email" required placeholder="nome@instituicao.edu.br" />
+            <div class="help">Preferencialmente e-mail institucional. Também aceita Gmail, Outlook, Hotmail ou Live.</div>
+          </div>
+          <div class="field col-4">
+            <label for="course">Turma / componente curricular</label>
+            <input id="course" name="course" required />
+          </div>
+          <div class="field col-4">
+            <label for="teamName">Nome da equipe</label>
+            <input id="teamName" name="teamName" required />
+          </div>
+          <div class="field col-4">
+            <label for="teamSize">Quantidade de integrantes na equipe</label>
+            <select id="teamSize" name="teamSize" required>
+              <option value="">Selecione</option>
+              <option>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
+              <option>7</option><option>8</option><option>9</option><option>10</option>
+            </select>
+            <div class="help">O sistema abrirá automaticamente o número correto de colegas a serem avaliados: total da equipe menos você.</div>
+          </div>
+        </div>
+
+        <div id="emailStatus" class="status"></div>
+
+        <h2 style="margin-top:26px;">Critérios de avaliação</h2>
+        <div class="note">
+          Escala de notas por critério: 1 a 5.<br>
+          1 = não atendeu · 2 = atendeu pouco · 3 = atendeu parcialmente · 4 = atendeu bem · 5 = atendeu plenamente
+        </div>
+
+        <div id="peersContainer"></div>
+
+        <div class="field" style="margin-top:18px;">
+          <label for="generalComments">Comentário geral sobre o funcionamento da equipe</label>
+          <textarea id="generalComments" name="generalComments" placeholder="Opcional"></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="submit" class="primary">Enviar avaliação</button>
+          <button type="button" class="secondary" id="saveLocalBtn">Salvar localmente</button>
+          <button type="reset" class="ghost" id="resetBtn">Limpar formulário</button>
+        </div>
+        <div id="formStatus" class="status"></div>
+      </form>
+    </section>
+
+    <section id="tab-relatorio" class="grid hidden">
+      <div class="card">
+        <h2>Apuração da nota individual</h2>
+        <div class="note">
+          Regras de cálculo usadas nesta página:
+          <ol>
+            <li>Para cada aluno avaliado em uma resposta, calcula-se a <strong>média dos 4 critérios</strong>.</li>
+            <li>A média é convertida para nota com uma casa decimal.</li>
+            <li>A <strong>nota individual final</strong> do aluno é a <strong>moda</strong> das notas finais recebidas dos pares.</li>
+            <li>Se houver empate de frequência, o sistema adota a <strong>maior moda</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="primary" id="refreshReportBtn">Atualizar relatório</button>
+          <button type="button" class="secondary" id="exportJsonBtn">Exportar respostas (JSON)</button>
+          <button type="button" class="ghost" id="clearLocalBtn">Limpar respostas locais</button>
+        </div>
+
+        <div id="reportSummary" class="status warn" style="display:block;margin-top:16px;">
+          O relatório lê as respostas salvas localmente no navegador. Se você conectar um endpoint externo, mantenha também um relatório em planilha ou banco de dados.
+        </div>
+
+        <div id="reportTableWrap"></div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <strong>Configuração opcional para coleta online:</strong> abra o arquivo e substitua a constante
+      <span class="mono">SCRIPT_ENDPOINT</span> pela URL de um Web App do Google Apps Script ou outro endpoint que receba <span class="mono">POST</span> em JSON.
+      Esta página já envia um objeto estruturado com dados do avaliador, equipe, timestamp e avaliações dos colegas.
+    </div>
+  </main>
+
+  <script>
+    // =========================
+    // CONFIGURAÇÃO OPCIONAL
+    // =========================
+    // Cole aqui a URL do seu endpoint de coleta (Google Apps Script, Supabase Edge Function, etc.)
+    const SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbyOWAjATudYn36Yi1tQQTEAdzc6CwB28j3W09um5fst28v03MHmTP1BtGmswSFkS2O0fA/exec";
+
+    const criteria = [
+      "Cumprimento das tarefas acordadas",
+      "Participação nas discussões",
+      "Respeito aos prazos",
+      "Contribuição para o produto final"
+    ];
+
+    const teamSizeEl = document.getElementById("teamSize");
+    const peersContainer = document.getElementById("peersContainer");
+    const peerForm = document.getElementById("peerForm");
+    const formStatus = document.getElementById("formStatus");
+    const emailStatus = document.getElementById("emailStatus");
+
+    const tabs = document.querySelectorAll(".tab-btn");
+    const tabAvaliacao = document.getElementById("tab-avaliacao");
+    const tabRelatorio = document.getElementById("tab-relatorio");
+
+    tabs.forEach(btn => {
+      btn.addEventListener("click", () => {
+        tabs.forEach(b => {
+          b.classList.remove("active", "primary");
+          b.classList.add("ghost");
+        });
+        btn.classList.add("active", "primary");
+        btn.classList.remove("ghost");
+
+        if (btn.dataset.tab === "avaliacao") {
+          tabAvaliacao.classList.remove("hidden");
+          tabRelatorio.classList.add("hidden");
+        } else {
+          tabRelatorio.classList.remove("hidden");
+          tabAvaliacao.classList.add("hidden");
+          renderReport();
+        }
+      });
+    });
+
+    function showStatus(el, type, text) {
+      el.className = "status " + type;
+      el.innerHTML = text;
+    }
+
+    function clearStatus(el) {
+      el.className = "status";
+      el.innerHTML = "";
+    }
+
+    function normalizeName(name) {
+      return (name || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function isPreferredEmail(email) {
+      const value = (email || "").trim().toLowerCase();
+      const institutional = /@([a-z0-9-]+\.)*(edu|edu\.br|ac\.br|ufba\.br|uneb\.br|ifba\.edu\.br)$/i.test(value);
+      const common = /@(gmail\.com|outlook\.com|hotmail\.com|live\.com)$/i.test(value);
+      return institutional || common;
+    }
+
+    function validateEmailFeedback() {
+      const email = document.getElementById("evaluatorEmail").value;
+      if (!email) {
+        clearStatus(emailStatus);
+        return;
+      }
+      if (isPreferredEmail(email)) {
+        showStatus(emailStatus, "ok", "E-mail válido para uso no formulário.");
+      } else {
+        showStatus(emailStatus, "warn", "O e-mail é válido, mas não parece institucional, Gmail, Outlook, Hotmail ou Live. O envio continua permitido.");
+      }
+    }
+
+    document.getElementById("evaluatorEmail").addEventListener("input", validateEmailFeedback);
+
+    function createScale(peerIndex, criterionIndex) {
+      const groupName = `peer_${peerIndex}_criterion_${criterionIndex}`;
+      return `
+        <div class="criterion">
+          <div class="criterion-title">${criteria[criterionIndex]}</div>
+          <div class="scale">
+            ${[1,2,3,4,5].map(n => `
+              <label>
+                <input type="radio" name="${groupName}" value="${n}" required />
+                <span>${n}</span>
+              </label>
+            `).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function generatePeerBlocks() {
+      peersContainer.innerHTML = "";
+      const teamSize = Number(teamSizeEl.value || 0);
+      if (!teamSize || teamSize < 2 || teamSize > 10) return;
+
+      const peerCount = teamSize - 1;
+
+      for (let i = 1; i <= peerCount; i++) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "peer-card";
+        wrapper.innerHTML = `
+          <div class="badge">Colega ${i}</div>
+          <div class="row">
+            <div class="field col-6">
+              <label for="peerName_${i}">Nome completo do colega avaliado ${i}</label>
+              <input id="peerName_${i}" name="peerName_${i}" required />
+            </div>
+            <div class="field col-6">
+              <label for="peerRole_${i}">Função / observação do colega ${i}</label>
+              <input id="peerRole_${i}" name="peerRole_${i}" placeholder="Opcional" />
+            </div>
+          </div>
+          ${criteria.map((_, idx) => createScale(i, idx)).join("")}
+          <div class="field">
+            <label for="peerComment_${i}">Comentário opcional sobre o colega ${i}</label>
+            <textarea id="peerComment_${i}" name="peerComment_${i}" placeholder="Opcional"></textarea>
+          </div>
+        `;
+        peersContainer.appendChild(wrapper);
+      }
+    }
+
+    teamSizeEl.addEventListener("change", generatePeerBlocks);
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      setTimeout(() => {
+        peersContainer.innerHTML = "";
+        clearStatus(formStatus);
+        clearStatus(emailStatus);
+      }, 0);
+    });
+
+    function getPeerAverage(peerIndex) {
+      const values = criteria.map((_, criterionIndex) => {
+        const checked = document.querySelector(`input[name="peer_${peerIndex}_criterion_${criterionIndex}"]:checked`);
+        return Number(checked?.value || 0);
+      });
+      const avg = values.reduce((a,b) => a+b, 0) / values.length;
+      return Number(avg.toFixed(1));
+    }
+
+    function collectPayload() {
+      const evaluatorName = document.getElementById("evaluatorName").value.trim();
+      const evaluatorEmail = document.getElementById("evaluatorEmail").value.trim();
+      const course = document.getElementById("course").value.trim();
+      const teamName = document.getElementById("teamName").value.trim();
+      const teamSize = Number(document.getElementById("teamSize").value);
+      const generalComments = document.getElementById("generalComments").value.trim();
+
+      const peerCount = teamSize - 1;
+      const evaluations = [];
+
+      for (let i = 1; i <= peerCount; i++) {
+        const peerName = document.getElementById(`peerName_${i}`).value.trim();
+        const peerRole = document.getElementById(`peerRole_${i}`).value.trim();
+        const criterionScores = criteria.map((label, criterionIndex) => {
+          const checked = document.querySelector(`input[name="peer_${i}_criterion_${criterionIndex}"]:checked`);
+          return { criterion: label, score: Number(checked.value) };
+        });
+        const finalPeerScore = getPeerAverage(i);
+        const comment = document.getElementById(`peerComment_${i}`).value.trim();
+
+        evaluations.push({
+          peerName,
+          peerRole,
+          criterionScores,
+          finalPeerScore,
+          comment
+        });
+      }
+
+      return {
+        timestamp: new Date().toISOString(),
+        evaluator: {
+          name: evaluatorName,
+          email: evaluatorEmail
+        },
+        team: {
+          course,
+          teamName,
+          teamSize
+        },
+        generalComments,
+        evaluations
+      };
+    }
+
+    function saveLocal(payload) {
+      const key = "peer_eval_responses_v1";
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      existing.push(payload);
+      localStorage.setItem(key, JSON.stringify(existing));
+    }
+
+    async function submitToEndpoint(payload) {
+      const res = await fetch(SCRIPT_ENDPOINT, {
+        method: "POST",
+        headers: {"Content-Type":"application/json"},
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        throw new Error("Falha ao enviar para o endpoint externo.");
+      }
+      return await res.text();
+    }
+
+    peerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearStatus(formStatus);
+
+      const evaluatorName = document.getElementById("evaluatorName").value.trim();
+      const evaluatorEmail = document.getElementById("evaluatorEmail").value.trim();
+      const teamSize = Number(document.getElementById("teamSize").value);
+
+      if (!evaluatorName || !evaluatorEmail || !teamSize) {
+        showStatus(formStatus, "err", "Preencha os campos obrigatórios do avaliador.");
+        return;
+      }
+
+      const payload = collectPayload();
+      const evaluatedNames = payload.evaluations.map(e => normalizeName(e.peerName));
+      const uniqueNames = new Set(evaluatedNames);
+
+      if (uniqueNames.size !== evaluatedNames.length) {
+        showStatus(formStatus, "err", "Há nomes de colegas repetidos. Cada colega deve ser avaliado apenas uma vez.");
+        return;
+      }
+
+      if (evaluatedNames.includes(normalizeName(payload.evaluator.name))) {
+        showStatus(formStatus, "err", "O avaliador não deve avaliar a si mesmo. Remova seu nome da lista de colegas.");
+        return;
+      }
+
+      try {
+        saveLocal(payload);
+
+        if (SCRIPT_ENDPOINT) {
+          await submitToEndpoint(payload);
+          showStatus(formStatus, "ok", "Avaliação enviada com sucesso e salva no armazenamento local do navegador.");
+        } else {
+          showStatus(formStatus, "warn", "Avaliação salva localmente neste navegador. Para coleta online entre vários alunos, configure o endpoint externo no código.");
+        }
+
+        peerForm.reset();
+        peersContainer.innerHTML = "";
+        clearStatus(emailStatus);
+      } catch (err) {
+        showStatus(formStatus, "err", "A avaliação foi salva localmente, mas houve falha no envio externo. Verifique o endpoint configurado.");
+      }
+    });
+
+    document.getElementById("saveLocalBtn").addEventListener("click", () => {
+      try {
+        if (!peerForm.reportValidity()) return;
+        const payload = collectPayload();
+        saveLocal(payload);
+        showStatus(formStatus, "ok", "Rascunho salvo localmente neste navegador.");
+      } catch (err) {
+        showStatus(formStatus, "err", "Não foi possível salvar localmente.");
+      }
+    });
+
+    function modeWithHighestTie(values) {
+      if (!values.length) return null;
+      const freq = new Map();
+      values.forEach(v => {
+        const key = Number(v).toFixed(1);
+        freq.set(key, (freq.get(key) || 0) + 1);
+      });
+
+      let bestValue = null;
+      let bestFreq = -1;
+
+      for (const [value, count] of freq.entries()) {
+        const numeric = Number(value);
+        if (count > bestFreq || (count === bestFreq && numeric > bestValue)) {
+          bestFreq = count;
+          bestValue = numeric;
+        }
+      }
+
+      return { mode: Number(bestValue.toFixed(1)), frequency: bestFreq };
+    }
+
+    function readLocalResponses() {
+      return JSON.parse(localStorage.getItem("peer_eval_responses_v1") || "[]");
+    }
+
+    function buildReportRows(responses) {
+      const students = new Map();
+
+      responses.forEach(response => {
+        response.evaluations.forEach(ev => {
+          const key = normalizeName(ev.peerName);
+          if (!students.has(key)) {
+            students.set(key, {
+              aluno: ev.peerName,
+              equipe: response.team?.teamName || "",
+              turma: response.team?.course || "",
+              notasRecebidas: [],
+              avaliadores: []
+            });
+          }
+          const item = students.get(key);
+          item.notasRecebidas.push(Number(ev.finalPeerScore));
+          item.avaliadores.push(response.evaluator?.name || "Sem nome");
+        });
+      });
+
+      return Array.from(students.values()).map(item => {
+        const modaInfo = modeWithHighestTie(item.notasRecebidas);
+        const media = item.notasRecebidas.length
+          ? Number((item.notasRecebidas.reduce((a,b)=>a+b,0) / item.notasRecebidas.length).toFixed(2))
+          : null;
+
+        return {
+          aluno: item.aluno,
+          equipe: item.equipe,
+          turma: item.turma,
+          qtdAvaliacoes: item.notasRecebidas.length,
+          notasRecebidas: item.notasRecebidas.join(", "),
+          moda: modaInfo ? modaInfo.mode.toFixed(1) : "-",
+          freqModa: modaInfo ? modaInfo.frequency : "-",
+          media: media !== null ? media.toFixed(2) : "-",
+          avaliadores: item.avaliadores.join(", ")
+        };
+      }).sort((a,b) => a.aluno.localeCompare(b.aluno, 'pt-BR'));
+    }
+
+    function renderReport() {
+      const wrap = document.getElementById("reportTableWrap");
+      const responses = readLocalResponses();
+
+      if (!responses.length) {
+        wrap.innerHTML = `<div class="warning" style="margin-top:16px;">Nenhuma resposta local encontrada neste navegador.</div>`;
+        return;
+      }
+
+      const rows = buildReportRows(responses);
+
+      wrap.innerHTML = `
+        <div class="small" style="margin-top:14px;">Total de respostas registradas localmente: <strong>${responses.length}</strong></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Aluno avaliado</th>
+              <th>Equipe</th>
+              <th>Turma</th>
+              <th>Qtd. avaliações</th>
+              <th>Notas recebidas</th>
+              <th>Moda</th>
+              <th>Frequência da moda</th>
+              <th>Média</th>
+              <th>Avaliadores</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${escapeHtml(r.aluno)}</td>
+                <td>${escapeHtml(r.equipe)}</td>
+                <td>${escapeHtml(r.turma)}</td>
+                <td>${escapeHtml(String(r.qtdAvaliacoes))}</td>
+                <td>${escapeHtml(r.notasRecebidas)}</td>
+                <td><strong>${escapeHtml(r.moda)}</strong></td>
+                <td>${escapeHtml(String(r.freqModa))}</td>
+                <td>${escapeHtml(r.media)}</td>
+                <td>${escapeHtml(r.avaliadores)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.getElementById("refreshReportBtn").addEventListener("click", renderReport);
+
+    document.getElementById("clearLocalBtn").addEventListener("click", () => {
+      const ok = confirm("Deseja remover todas as respostas salvas localmente neste navegador?");
+      if (!ok) return;
+      localStorage.removeItem("peer_eval_responses_v1");
+      renderReport();
+    });
+
+    document.getElementById("exportJsonBtn").addEventListener("click", () => {
+      const data = readLocalResponses();
+      const blob = new Blob([JSON.stringify(data, null, 2)], {type:"application/json"});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "avaliacoes_pares_respostas.json";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
