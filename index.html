@@ -227,14 +227,14 @@
   <header>
     <div class="container hero">
       <h1>Avaliação por Pares entre Equipes</h1>
-      <p>Formulário web para equipes de até 10 integrantes, com coleta de e-mail, avaliação individual por critérios e apuração da nota individual pela <strong>moda das notas finais atribuídas pelos pares</strong>.</p>
+      <p>Formulário web para equipes de até 10 integrantes, com coleta de e-mail e avaliação individual por critérios.</p>
     </div>
   </header>
 
   <main class="container">
     <div class="tabs">
       <button class="tab-btn primary active" data-tab="avaliacao" type="button">Formulário de avaliação</button>
-      <button class="tab-btn ghost" data-tab="relatorio" type="button">Relatório / apuração</button>
+      <button class="tab-btn ghost" data-tab="relatorio" type="button">Relatório / apuração local</button>
     </div>
 
     <section id="tab-avaliacao" class="grid">
@@ -242,15 +242,15 @@
         <h2>Orientações</h2>
         <div class="note">
           Cada estudante deve preencher seus dados, informar a equipe e avaliar separadamente cada colega do grupo.
-          A nota de cada colega em uma avaliação é a <strong>média dos 4 critérios</strong>. Ao final, a <strong>nota individual do aluno</strong> é calculada pela <strong>moda</strong> dessas notas recebidas dos pares. Em caso de empate na moda, o sistema adota a <strong>maior moda</strong>.
+          A nota de cada colega em uma avaliação é a <strong>média dos 4 critérios</strong>.
+          A apuração final por <strong>moda</strong> será feita posteriormente na planilha.
         </div>
         <div class="warning" style="margin-top:12px;">
-          Este arquivo já funciona para coleta local no navegador e geração de relatório. Para coleta real de vários respondentes, publique a página e conecte um endpoint de armazenamento
-          (por exemplo: Google Apps Script + Google Sheets, Supabase ou Firebase). O campo de configuração está no código como <span class="mono">SCRIPT_ENDPOINT</span>.
+          Esta versão envia os dados diretamente ao Google Apps Script por formulário HTML tradicional.
         </div>
       </div>
 
-      <form id="peerForm" class="card">
+      <form id="peerForm" class="card" method="POST" target="submitFrame">
         <h2>Dados do avaliador</h2>
         <div class="row">
           <div class="field col-6">
@@ -296,6 +296,8 @@
           <textarea id="generalComments" name="generalComments" placeholder="Opcional"></textarea>
         </div>
 
+        <input type="hidden" id="payload" name="payload" />
+
         <div class="actions">
           <button type="submit" class="primary">Enviar avaliação</button>
           <button type="button" class="secondary" id="saveLocalBtn">Salvar localmente</button>
@@ -303,19 +305,16 @@
         </div>
         <div id="formStatus" class="status"></div>
       </form>
+
+      <iframe name="submitFrame" id="submitFrame" style="display:none;"></iframe>
     </section>
 
     <section id="tab-relatorio" class="grid hidden">
       <div class="card">
-        <h2>Apuração da nota individual</h2>
+        <h2>Apuração local</h2>
         <div class="note">
-          Regras de cálculo usadas nesta página:
-          <ol>
-            <li>Para cada aluno avaliado em uma resposta, calcula-se a <strong>média dos 4 critérios</strong>.</li>
-            <li>A média é convertida para nota com uma casa decimal.</li>
-            <li>A <strong>nota individual final</strong> do aluno é a <strong>moda</strong> das notas finais recebidas dos pares.</li>
-            <li>Se houver empate de frequência, o sistema adota a <strong>maior moda</strong>.</li>
-          </ol>
+          Este relatório lê apenas as respostas salvas localmente no navegador.
+          A apuração oficial deve ser feita na planilha Google.
         </div>
 
         <div class="actions">
@@ -325,7 +324,7 @@
         </div>
 
         <div id="reportSummary" class="status warn" style="display:block;margin-top:16px;">
-          O relatório lê as respostas salvas localmente no navegador. Se você conectar um endpoint externo, mantenha também um relatório em planilha ou banco de dados.
+          O relatório abaixo é apenas local.
         </div>
 
         <div id="reportTableWrap"></div>
@@ -333,17 +332,12 @@
     </section>
 
     <div class="footer">
-      <strong>Configuração opcional para coleta online:</strong> abra o arquivo e substitua a constante
-      <span class="mono">SCRIPT_ENDPOINT</span> pela URL de um Web App do Google Apps Script ou outro endpoint que receba <span class="mono">POST</span> em JSON.
-      Esta página já envia um objeto estruturado com dados do avaliador, equipe, timestamp e avaliações dos colegas.
+      <strong>Endpoint ativo:</strong>
+      <span class="mono">https://script.google.com/macros/s/AKfycbzVrgSco37yOSlfxzM6YrwCmAg6rwFgG3BLY9GfIogdya-EB7hhmaudS2riQGPYkwmOiw/exec</span>
     </div>
   </main>
 
   <script>
-    // =========================
-    // CONFIGURAÇÃO OPCIONAL
-    // =========================
-    // Cole aqui a URL do seu endpoint de coleta (Google Apps Script, Supabase Edge Function, etc.)
     const SCRIPT_ENDPOINT = "https://script.google.com/macros/s/AKfycbzVrgSco37yOSlfxzM6YrwCmAg6rwFgG3BLY9GfIogdya-EB7hhmaudS2riQGPYkwmOiw/exec";
 
     const criteria = [
@@ -358,6 +352,7 @@
     const peerForm = document.getElementById("peerForm");
     const formStatus = document.getElementById("formStatus");
     const emailStatus = document.getElementById("emailStatus");
+    const payloadField = document.getElementById("payload");
 
     const tabs = document.querySelectorAll(".tab-btn");
     const tabAvaliacao = document.getElementById("tab-avaliacao");
@@ -398,13 +393,13 @@
         .trim()
         .toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
+        .replace(/[\\u0300-\\u036f]/g, "");
     }
 
     function isPreferredEmail(email) {
       const value = (email || "").trim().toLowerCase();
-      const institutional = /@([a-z0-9-]+\.)*(edu|edu\.br|ac\.br|ufba\.br|uneb\.br|ifba\.edu\.br)$/i.test(value);
-      const common = /@(gmail\.com|outlook\.com|hotmail\.com|live\.com)$/i.test(value);
+      const institutional = /@([a-z0-9-]+\\.)*(edu|edu\\.br|ac\\.br|ufba\\.br|uneb\\.br|ifba\\.edu\\.br)$/i.test(value);
+      const common = /@(gmail\\.com|outlook\\.com|hotmail\\.com|live\\.com)$/i.test(value);
       return institutional || common;
     }
 
@@ -417,7 +412,7 @@
       if (isPreferredEmail(email)) {
         showStatus(emailStatus, "ok", "E-mail válido para uso no formulário.");
       } else {
-        showStatus(emailStatus, "warn", "O e-mail é válido, mas não parece institucional, Gmail, Outlook, Hotmail ou Live. O envio continua permitido.");
+        showStatus(emailStatus, "warn", "O e-mail é válido, mas não parece institucional, Gmail, Outlook, Hotmail ou Live.");
       }
     }
 
@@ -473,6 +468,7 @@
     }
 
     teamSizeEl.addEventListener("change", generatePeerBlocks);
+
     document.getElementById("resetBtn").addEventListener("click", () => {
       setTimeout(() => {
         peersContainer.innerHTML = "";
@@ -486,7 +482,7 @@
         const checked = document.querySelector(`input[name="peer_${peerIndex}_criterion_${criterionIndex}"]:checked`);
         return Number(checked?.value || 0);
       });
-      const avg = values.reduce((a,b) => a+b, 0) / values.length;
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
       return Number(avg.toFixed(1));
     }
 
@@ -543,19 +539,7 @@
       localStorage.setItem(key, JSON.stringify(existing));
     }
 
-    async function submitToEndpoint(payload) {
-      const res = await fetch(SCRIPT_ENDPOINT, {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify(payload)
-      });
-      if (!res.ok) {
-        throw new Error("Falha ao enviar para o endpoint externo.");
-      }
-      return await res.text();
-    }
-
-    peerForm.addEventListener("submit", async (e) => {
+    peerForm.addEventListener("submit", (e) => {
       e.preventDefault();
       clearStatus(formStatus);
 
@@ -578,25 +562,24 @@
       }
 
       if (evaluatedNames.includes(normalizeName(payload.evaluator.name))) {
-        showStatus(formStatus, "err", "O avaliador não deve avaliar a si mesmo. Remova seu nome da lista de colegas.");
+        showStatus(formStatus, "err", "O avaliador não deve avaliar a si mesmo.");
         return;
       }
 
       try {
         saveLocal(payload);
 
-        if (SCRIPT_ENDPOINT) {
-          await submitToEndpoint(payload);
-          showStatus(formStatus, "ok", "Avaliação enviada com sucesso e salva no armazenamento local do navegador.");
-        } else {
-          showStatus(formStatus, "warn", "Avaliação salva localmente neste navegador. Para coleta online entre vários alunos, configure o endpoint externo no código.");
-        }
+        peerForm.action = SCRIPT_ENDPOINT;
+        payloadField.value = JSON.stringify(payload);
+        peerForm.submit();
 
+        showStatus(formStatus, "ok", "Avaliação enviada. Confira a aba Respostas da planilha.");
         peerForm.reset();
         peersContainer.innerHTML = "";
         clearStatus(emailStatus);
+
       } catch (err) {
-        showStatus(formStatus, "err", "A avaliação foi salva localmente, mas houve falha no envio externo. Verifique o endpoint configurado.");
+        showStatus(formStatus, "err", "Falha no envio para o Apps Script.");
       }
     });
 
